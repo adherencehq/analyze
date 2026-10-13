@@ -1,0 +1,36 @@
+# The reusable workflow customers call (adherencehq/analyze/.github/workflows/analyze.yml).
+# DRAFT: adherence-analysis is not on PyPI and the platform URL is a placeholder.
+name: Adherence analysis
+
+on:
+  workflow_call:
+    inputs:
+      run_id:
+        description: The platform's run id, when Adherence dispatched the run.
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # the command fetches the job's OIDC token for each request
+    env:
+      ADHERENCE_PLATFORM_URL: https://adherence.example # placeholder until first deploy
+      ANALYSIS_VERSION: "0.3.0"
+    steps:
+      # Pin both actions to full commit SHAs before tagging v1.
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Analyze
+        env:
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          uvx --python 3.13 --from "adherence-analysis==$ANALYSIS_VERSION" \
+            adherence-analysis run . ${RUN_ID:+--run-id "$RUN_ID"}

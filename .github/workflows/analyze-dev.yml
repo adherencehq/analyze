@@ -1,0 +1,45 @@
+# Development only (adherencehq/analyze/.github/workflows/analyze-dev.yml). Runs the library
+# from its source on a self-hosted runner and reports to a local platform. The platform accepts
+# this workflow only when it runs in development; it is a separate file, not an input of
+# analyze.yml, because the OIDC token names the workflow but not its inputs.
+name: Adherence analysis (development)
+
+on:
+  workflow_call:
+    inputs:
+      run_id:
+        description: The platform's run id, when Adherence dispatched the run.
+        type: string
+        required: false
+        default: ""
+      analysis_path:
+        description: The runner's path to packages/analysis in the adherence repo.
+        type: string
+        required: true
+      platform_url:
+        type: string
+        required: false
+        default: http://localhost:8000
+
+jobs:
+  analyze:
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Analyze
+        env:
+          RUN_ID: ${{ inputs.run_id }}
+          ANALYSIS_PATH: ${{ inputs.analysis_path }}
+          ADHERENCE_PLATFORM_URL: ${{ inputs.platform_url }}
+        # The library's current source from the adherence workspace, not a release.
+        run: |
+          uv run --frozen --project "$ANALYSIS_PATH" \
+            adherence-analysis run . ${RUN_ID:+--run-id "$RUN_ID"}
